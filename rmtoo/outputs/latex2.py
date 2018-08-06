@@ -44,6 +44,7 @@ class latex2(StdOutputParams, ExecutorTopicContinuum, CreateMakeDependencies):
         self.__ce3set = None
         self.__fd = None
         self.__constraints_reqs_ref = {}
+        self.__visited_verts = set()
 
         if not self._config.is_available('req_attributes'):
             self._config.set_value(
@@ -65,6 +66,7 @@ class latex2(StdOutputParams, ExecutorTopicContinuum, CreateMakeDependencies):
 
     def topic_set_pre(self, _topics_set):
         '''Prepare the output file.'''
+        self.__visited_verts = set()
         self.__fd = io.open(self._output_filename, "w", encoding="utf-8")
 
     def __output_latex_one_constraint(self, cname, cnstrt):
@@ -195,6 +197,10 @@ class latex2(StdOutputParams, ExecutorTopicContinuum, CreateMakeDependencies):
 
     def requirement(self, req):
         '''Write out one requirement.'''
+        if req.name in self.__visited_verts:
+            return
+        self.__visited_verts.add(req.name)
+
         self.__fd.write(u"%% REQ '%s'\n" % req.get_id())
 
         self.__fd.write(u"\%s{%s}\label{%s}\n\\textbf{Description:} %s\n"

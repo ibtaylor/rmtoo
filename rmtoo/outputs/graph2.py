@@ -32,6 +32,8 @@ class graph2(StdOutputParams, ExecutorTopicContinuum, CreateMakeDependencies):
         self.__output_file = None
         self.__ident = ""
         self.__level = 0
+        self.__visited_edges = set()
+        self.__visited_verts = set()
         self.__req_dep_graph = ""
 
     def __set_indent(self):
@@ -56,6 +58,8 @@ class graph2(StdOutputParams, ExecutorTopicContinuum, CreateMakeDependencies):
     def topic_set_pre(self, _):
         '''This is the first thing which is called.'''
         tracer.debug("Called.")
+        self.__visited_edges = set()
+        self.__visited_verts = set()
         self.__output_file = open(self._output_filename, "w")
         self.__output_file.write(
                 "digraph reqdeps {\nrankdir=BT;\nmclimit=10.0;\n"
@@ -89,17 +93,22 @@ class graph2(StdOutputParams, ExecutorTopicContinuum, CreateMakeDependencies):
         '''Set the order of the requirements.'''
         return sorted(list_to_sort, key=lambda t: t.name)
 
-    def requirement(self, requirement):
+    def requirement(self, req):
         '''Output one requirement - and collect information about the
            requirement's coherence.'''
         ident = "          "[0:self.__level]
-        self.__output_file.write('%s"%s" [%s];\n'
-                                 % (ident, requirement.name,
-                                    graph.node_attributes(requirement)))
+        if req.name not in self.__visited_verts:
+            self.__output_file.write('%s"%s" [%s];\n'
+                                     % (ident, req.name,
+                                        graph.node_attributes(req)))
+            self.__visited_verts.add(req.name)
 
-        for d in sorted(requirement.incoming, key=lambda r: r.get_id()):
-            self.__req_dep_graph += '"%s" -> "%s";\n' \
-                                    % (requirement.get_id(), d.get_id())
+        tracer.debug("visiting...")
+        for d in sorted(req.incoming, key=lambda r: r.get_id()):
+            k = (req.get_id(), d.get_id())
+            if k not in self.__visited_edges:
+                self.__req_dep_graph += '"%s" -> "%s";\n' % (req.get_id(), d.get_id())
+                self.__visited_edges.add(k)
 
     def cmad_topic_continuum_pre(self, _):
         '''Write out the one and only dependency to all the requirements.'''

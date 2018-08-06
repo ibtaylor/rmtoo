@@ -34,6 +34,7 @@ class graph(StdOutputParams, ExecutorTopicContinuum, CreateMakeDependencies):
         CreateMakeDependencies.__init__(self)
         self.__used_vcs_id = None
         self.__output_file = None
+        self.__visited = set()
 
         if not self._config.is_available('node_attributes'):
             self._config.set_value(
@@ -49,6 +50,7 @@ class graph(StdOutputParams, ExecutorTopicContinuum, CreateMakeDependencies):
     def topic_set_pre(self, _requirement_set):
         '''This is call in the RequirementSet pre-phase.'''
         tracer.debug("Called")
+        self.__visited = set()
         # Initialize the graph output
         self.__output_file = open(self._output_filename, "w")
         self.__output_file.write(
@@ -76,8 +78,11 @@ class graph(StdOutputParams, ExecutorTopicContinuum, CreateMakeDependencies):
              self.node_attributes(requirement, self._config)))
 
         for d in requirement.incoming:
-            self.__output_file.write('"%s" -> "%s";\n' %
-                                     (requirement.get_id(), d.get_id()))
+            k = (requirement.get_id(), d.get_id())
+            if k not in self.__visited:
+                self.__visited.add(k)
+                self.__output_file.write('"%s" -> "%s";\n' %
+                                         (requirement.get_id(), d.get_id()))
 
 # TODO: currently the =default_config is needed for graph2
     @staticmethod
